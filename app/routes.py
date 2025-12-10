@@ -16,6 +16,20 @@ def get_client():
 @router.post("/")
 @router.post("/mcp")
 async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
+    if req.method == "initialize":
+        # Sehr einfache MCP-Initialize-Antwort
+        return {
+            "jsonrpc": "2.0",
+            "id": req.id,
+            "result": {
+                "capabilities": {
+                    "tools": {
+                        "supported": True
+                    }
+                }
+            },
+        }
+    
     if req.method == "tools/query":
         params = MCPQueryParams(**req.params)
         col = client.get_collection(params.collection)
