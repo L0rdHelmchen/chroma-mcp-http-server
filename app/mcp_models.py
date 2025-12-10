@@ -1,6 +1,6 @@
 # app/mcp_models.py
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 
 class MCPQueryParams(BaseModel):
     collection: str
@@ -15,6 +15,6 @@ class MCPAddTextsParams(BaseModel):
 
 class MCPRequest(BaseModel):
     jsonrpc: str = "2.0"
-    id: str
+    id: Union[str, int]   # vorher: str geändert zu Union[str, int]
     method: str
     params: Dict[str, Any]
