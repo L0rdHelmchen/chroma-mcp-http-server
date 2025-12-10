@@ -34,6 +34,9 @@ async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
                 }
             },
         }
+    if req.method == "notifications/initialized":
+        # Just confirm (Notification)
+        return {}
     
     if req.method == "tools/query":
         params = MCPQueryParams(**req.params)
