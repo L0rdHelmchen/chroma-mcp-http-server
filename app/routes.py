@@ -1,12 +1,13 @@
 # app/routes.py
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Callable, Dict, Any
 from app.mcp_models import MCPRequest, MCPQueryParams, MCPAddTextsParams
 from app.config import settings
 from app.chromaclient import get_chroma_client
 
 router = APIRouter()
+
 
 def get_client():
     return get_chroma_client(
@@ -15,6 +16,9 @@ def get_client():
         ssl=settings.chroma_ssl,
     )
 
+# --- MCP JSON-RPC: POST / und POST /mcp ---
+
+@router.post("/")
 @router.post("/mcp")
 async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
     if req.method == "tools/query":
@@ -38,9 +42,12 @@ async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
 
     raise HTTPException(status_code=400, detail="Unknown method")
 
+
+# --- SSE: GET / und GET /mcp ---
+
+@router.get("/")
 @router.get("/mcp")
 async def sse_stream():
     async def event_generator():
-        # Minimal SSE‑Stream as MCP‑Endpoint‑Announcement
         yield "event: endpoint\ndata: {}\n\n"
     return StreamingResponse(event_generator(), media_type="text/event-stream")
