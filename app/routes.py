@@ -1,13 +1,10 @@
-# app/routes.py
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Callable, Dict, Any
+from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from app.mcp_models import MCPRequest, MCPQueryParams, MCPAddTextsParams
 from app.config import settings
 from app.chromaclient import get_chroma_client
 
 router = APIRouter()
-
 
 def get_client():
     return get_chroma_client(
@@ -15,8 +12,6 @@ def get_client():
         port=settings.chroma_port,
         ssl=settings.chroma_ssl,
     )
-
-# --- MCP JSON-RPC: POST / und POST /mcp ---
 
 @router.post("/")
 @router.post("/mcp")
@@ -40,14 +35,15 @@ async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
         )
         return {"jsonrpc": "2.0", "id": req.id, "result": "ok"}
 
-    raise HTTPException(status_code=400, detail="Unknown method")
-
-
-# --- SSE: GET / und GET /mcp ---
-
-@router.get("/")
-@router.get("/mcp")
-async def sse_stream():
-    async def event_generator():
-        yield "event: endpoint\ndata: {}\n\n"
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    # Neu: MCP-konformes Error-Result statt HTTP 400
+    return JSONResponse(
+        status_code=200,
+        content={
+            "jsonrpc": "2.0",
+            "id": req.id,
+            "error": {
+                "code": -32601,
+                "message": f"Method not found: {req.method}",
+            },
+        },
+    )
