@@ -17,11 +17,15 @@ def get_client():
 @router.post("/mcp")
 async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
     if req.method == "initialize":
-        # Sehr einfache MCP-Initialize-Antwort
         return {
             "jsonrpc": "2.0",
             "id": req.id,
             "result": {
+                "protocolVersion": "2024-11-05",
+                "serverInfo": {
+                    "name": "chroma-mcp-http-server",
+                    "version": "0.1.0",
+                },
                 "capabilities": {
                     "tools": {
                         "supported": True
