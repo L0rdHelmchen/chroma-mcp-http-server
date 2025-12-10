@@ -15,6 +15,6 @@ class MCPAddTextsParams(BaseModel):
 
 class MCPRequest(BaseModel):
     jsonrpc: str = "2.0"
-    id: Union[str, int]   # vorher: str geändert zu Union[str, int]
+    id: str | int | None = None  # optional request ID
     method: str
-    params: Dict[str, Any]
+    params: Optional[Dict[str, Any]] = None

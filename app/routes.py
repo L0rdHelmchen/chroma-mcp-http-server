@@ -15,6 +15,7 @@ def get_client():
 
 @router.post("/")
 @router.post("/mcp")
+
 async def handle_mcp(req: MCPRequest, client=Depends(get_client)):
     if req.method == "initialize":
         return {
