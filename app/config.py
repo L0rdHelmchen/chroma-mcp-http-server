@@ -1,5 +1,6 @@
 # app/config.py
-from pydantic import BaseSettings, AnyHttpUrl
+from pydantic_settings import BaseSettings
+from pydantic import AnyHttpUrl
 
 class Settings(BaseSettings):
     chroma_host: str = " chroma-db" # ChromaDB server hostname
