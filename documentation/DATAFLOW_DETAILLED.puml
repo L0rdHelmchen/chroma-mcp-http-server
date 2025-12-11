@@ -1,0 +1,103 @@
+@startuml Chroma_MCP_HTTP_Detailed_Flows
+!theme plain
+title Chroma MCP HTTP Server - Detaillierte Request/Response Datenflows
+
+skinparam participantPadding 20
+skinparam boxPadding 10
+
+participant "Claude Code" as Claude
+participant "HTTP Transport\n(JSON-RPC/SSE)" as HTTP
+participant "FastAPI Server\n(app/main.py)" as Server
+participant "Route Handler\n(app/routes.py)" as Routes
+participant "Chroma HTTP Client\n(app/chromaclient.py)" as Client
+participant "External ChromaDB\nServer" as ChromaDB
+
+== Request Flow: Collection Query ==
+
+Claude -> HTTP: POST /mcp\n{"method": "tools/call", "params": {"name": "chroma.query"}}
+HTTP -> Server: HTTP Request\n(MCP JSON-RPC)
+Server -> Routes: handle_mcp(MCPRequest)
+Routes -> Routes: Parse tool call\nExtract parameters
+
+alt Client Initialization (Dependency Injection)
+    Routes -> Client: get_chroma_client()\nwith config settings
+    Client -> Client: chromadb.HttpClient(\nhost, port, ssl)
+    Client --> Routes: ✅ HTTP Client Ready
+end
+
+Routes -> Client: client.get_collection(collection_name)
+Client -> ChromaDB: GET /api/v1/collections/{name}
+ChromaDB --> Client: Collection Object
+
+Routes -> Client: collection.query(\nquery_texts, n_results)
+Client -> ChromaDB: POST /api/v1/collections/{id}/query\n{"query_texts": [...], "n_results": N}
+
+ChromaDB -> ChromaDB: Vector Search\n+ Similarity Calculation
+ChromaDB --> Client: Query Results\n{"documents": [...], "distances": [...], "metadatas": [...]}
+
+Client --> Routes: Chroma Query Response
+Routes -> Routes: Format MCP Response\n{"jsonrpc": "2.0", "result": {...}}
+Routes --> Server: MCP JSON-RPC Response
+Server --> HTTP: HTTP 200 OK\n(JSON Response)
+HTTP --> Claude: MCP Tool Result
+
+== Request Flow: Add Documents ==
+
+Claude -> HTTP: POST /mcp\n{"method": "tools/call", "params": {"name": "chroma.add_texts"}}
+HTTP -> Server: HTTP Request\n(MCP JSON-RPC)
+Server -> Routes: handle_mcp(MCPRequest)
+Routes -> Routes: Parse MCPAddTextsParams\n(collection, ids, documents)
+
+Routes -> Client: client.get_or_create_collection(name)
+Client -> ChromaDB: GET /api/v1/collections/{name}\nOR POST /api/v1/collections
+ChromaDB --> Client: Collection Object
+
+Routes -> Client: collection.add(\nids, documents, metadatas)
+Client -> ChromaDB: POST /api/v1/collections/{id}/add\n{"ids": [...], "documents": [...]}
+
+ChromaDB -> ChromaDB: Generate Embeddings\n+ Store Documents
+ChromaDB --> Client: Add Operation Result
+
+Client --> Routes: Success Response
+Routes -> Routes: Format MCP Response\n{"jsonrpc": "2.0", "result": "ok"}
+Routes --> Server: MCP JSON-RPC Response
+Server --> HTTP: HTTP 200 OK
+HTTP --> Claude: Success Confirmation
+
+== Error Handling Flow ==
+
+alt Connection or Request Error
+    Client -> ChromaDB: ❌ HTTP Request Failed
+    ChromaDB --> Client: HTTP Error\n(Connection/Timeout/4xx/5xx)
+
+    Client --> Routes: Exception Raised
+    Routes -> Routes: Catch Exception\nGenerate Error Response
+
+    alt JSON-RPC Error Response
+        Routes --> Server: {"jsonrpc": "2.0", "error": {\n"code": -32601, "message": "..."}}
+        Server --> HTTP: HTTP 200 OK\n(with error payload)
+        HTTP --> Claude: MCP Error Response
+    end
+end
+
+note over Claude, ChromaDB
+**HTTP MCP Server Features:**
+• **FastAPI Framework**: Modern async HTTP server
+• **Pydantic Validation**: Type-safe request/response models
+• **Dependency Injection**: Efficient ChromaDB client management
+• **Environment Config**: Flexible configuration via env variables
+• **JSON-RPC Compliance**: Standard MCP protocol implementation
+• **Error Handling**: Proper JSON-RPC error responses
+
+**MCP Tools Implemented:**
+• **chroma.query**: Query documents with similarity search
+• **chroma.add_texts**: Add documents to collections
+
+**Configuration Options:**
+• **CHROMA_HOST**: Target ChromaDB server hostname
+• **CHROMA_PORT**: ChromaDB server port (default: 8000)
+• **CHROMA_SSL**: Enable HTTPS for ChromaDB connection
+• **SERVER_HOST/PORT**: MCP server binding (default: 0.0.0.0:8013)
+end note
+
+@enduml

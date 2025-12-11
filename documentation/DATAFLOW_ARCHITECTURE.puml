@@ -1,0 +1,93 @@
+@startuml Chroma_MCP_HTTP_Architecture
+
+
+!theme plain
+title Chroma MCP HTTP Server - Dataflow Architecture
+
+skinparam componentStyle uml2
+skinparam linetype ortho
+skinparam nodesep 50
+!pragma layout elk
+' Client Layer
+package "MCP Client Layer" {
+    [Claude Code] as claude_code
+    [Other MCP Clients] as others
+    interface "MCP Client API" as mcp_api
+}
+
+
+
+' HTTP Transport Layer
+package "HTTP Transport" {
+    interface "HTTP/HTTPS" as http_transport
+    note right of http_transport : POST /mcp (JSON-RPC)\nGET /mcp (SSE)\nPort 8013
+}
+
+' FastAPI MCP Server
+package "Chroma MCP HTTP Server" {
+    [FastAPI Application] as fastapi
+    note right of fastapi : app/main.py\nHTTP MCP Server
+
+    component "MCP Handler" as mcp_handler {
+        [Route Handler] as routes
+        [Request Models] as models
+        [Configuration] as config
+    }
+    note right of routes : app/routes.py\nMCP JSON-RPC Handler
+    note right of models : app/mcp_models.py\nPydantic Models
+    note right of config : app/config.py\nEnvironment Settings
+}
+
+' ChromaDB Client Layer
+package "ChromaDB Client" {
+    [Chroma HTTP Client] as chroma_client
+    note right of chroma_client : app/chromaclient.py\nchromadb.HttpClient
+}
+
+' ChromaDB Server Layer
+package "External ChromaDB Server" {
+    database "ChromaDB Server\n(External)" as chroma_server
+    note right of chroma_server : Separate ChromaDB Instance\nHost: CHROMA_HOST\nPort: CHROMA_PORT
+}
+
+' Connection flows
+' claude_code --> http_transport : HTTP Request\n (MCP JSON-RPC)
+' others --> http_transport
+
+' Clients sprechen nur mit der MCP-API
+claude_code --> mcp_api : MCP JSON-RPC
+others --> mcp_api
+
+' MCP-API spricht mit dem HTTP Transport
+mcp_api -down --> http_transport : HTTP Request\n(MCP JSON-RPC)
+
+http_transport --> fastapi : HTTP/HTTPS Port 8013
+fastapi --> mcp_handler
+
+routes --> chroma_client : get_chroma_client()
+config --> chroma_client : Settings\n(host, port, ssl)
+
+chroma_client --> chroma_server : HTTP/HTTPS\n CHROMA_HOST:CHROMA_PORT
+
+note top of chroma_server
+**ChromaDB Operations:**
+- Collection Management
+- Document Storage & Retrieval
+- Vector Similarity Search
+- Metadata Handling
+end note
+
+note bottom
+**MCP Tools Supported:**
+- chroma.query - Query documents from collections
+- chroma.add_texts - Add documents to collections
+
+**Configuration (Environment Variables):**
+- CHROMA_HOST - ChromaDB server hostname
+- CHROMA_PORT - ChromaDB server port (default: 8000)
+- CHROMA_SSL - Enable SSL/TLS (default: false)
+- SERVER_HOST - MCP server bind address (default: 0.0.0.0)
+- SERVER_PORT - MCP server port (default: 8013)
+end note
+
+@enduml
