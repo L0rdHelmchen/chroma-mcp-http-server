@@ -87,6 +87,8 @@ In your project (e.g. `~/Documents/VektorDB/.mcp.json`):
 
 Then in Claude Code, the server should appear as `connected` under “Manage MCP servers”.
 
+Check can be done by  curl -i http://<ec-2ip>:8013/mcp   
+
 ## Supported MCP methods
 
 The server currently handles:

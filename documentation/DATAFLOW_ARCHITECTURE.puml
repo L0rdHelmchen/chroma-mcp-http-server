@@ -15,12 +15,18 @@ package "MCP Client Layer" {
     interface "MCP Client API" as mcp_api
 }
 
-
+' HTTP/HTTPS Schnittstelle außerhalb
+interface "HTTP/HTTPS" as http_transport
 
 ' HTTP Transport Layer
 package "HTTP Transport" {
-    interface "HTTP/HTTPS" as http_transport
-    note right of http_transport : POST /mcp (JSON-RPC)\nGET /mcp (SSE)\nPort 8013
+    ' nur die Endpunkte im Paket
+    [MCP HTTP Endpoints] as http_endpoints
+    note right of http_endpoints
+      POST /mcp (JSON-RPC)
+      GET /mcp (SSE)
+      Port 8013
+    end note
 }
 
 ' FastAPI MCP Server
@@ -58,10 +64,11 @@ package "External ChromaDB Server" {
 claude_code --> mcp_api : MCP JSON-RPC
 others --> mcp_api
 
-' MCP-API spricht mit dem HTTP Transport
-mcp_api -down --> http_transport : HTTP Request\n(MCP JSON-RPC)
+'MCP-API spricht mit dem HTTP Transport
 
-http_transport --> fastapi : HTTP/HTTPS Port 8013
+mcp_api -down-> http_transport : HTTP Request\n(MCP JSON-RPC)
+http_transport -down-> http_endpoints : Route Handling
+http_endpoints -down-> fastapi : Port 8013
 fastapi --> mcp_handler
 
 routes --> chroma_client : get_chroma_client()
