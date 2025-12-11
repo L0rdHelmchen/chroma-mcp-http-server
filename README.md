@@ -87,7 +87,37 @@ In your project (e.g. `~/Documents/VektorDB/.mcp.json`):
 
 Then in Claude Code, the server should appear as `connected` under “Manage MCP servers”.
 
-Check can be done by  curl -i http://<ec-2ip>:8013/mcp   
+Check can be done by using Terminal curl
+
+Wrong: ❯ curl -i http://<ec-2ip>:8013/mcp
+
+HTTP/1.1 405 Method Not Allowed
+date: Thu, 11 Dec 2025 14:19:22 GMT
+server: uvicorn
+allow: POST
+content-length: 31
+content-type: application/json
+
+{"detail":"Method Not Allowed"}%
+
+Right: ❯ curl -i \
+  -X POST \
+  -H "Content-Type: application/json" \
+  http://<ec2ip>/mcp \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {}
+  }'
+
+HTTP/1.1 200 OK
+date: Thu, 11 Dec 2025 14:20:46 GMT
+server: uvicorn
+content-length: 194
+content-type: application/json
+
+{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","serverInfo":{"name":"chroma-mcp-http-server","version":"0.1.0"},"capabilities":{"tools":{"supported":true,"listChanged":true}}}}%                   
 
 ## Supported MCP methods
 
