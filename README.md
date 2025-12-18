@@ -12,7 +12,7 @@ A minimal [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server
     - basic tool calls: `tools/query`, `tools/add_texts` (extensible).
 - Containerized via Docker/Podman for deployment on EC2 or any OCI‑compatible runtime.
 
-Mini Python lesson: The server acts as a thin “adapter layer”: FastAPI receives MCP JSON‑RPC over HTTP, your handlers translate these into Chroma client calls, and return the results in MCP‑compatible JSON. This separation keeps HTTP transport, protocol logic, and vector‑DB access nicely decoupled.
+The server acts as a thin “adapter layer”: FastAPI receives MCP JSON‑RPC over HTTP, handlers translate these into Chroma client calls, and return the results in MCP‑compatible JSON. This separation keeps HTTP transport, protocol logic, and vector‑DB access nicely decoupled.
 
 ## Architecture
 
